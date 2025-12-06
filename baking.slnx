@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="apphost/AppHost.csproj" />
   <Project Path="baking.agent/baking.agent.csproj" />
   <Project Path="baking.cli/baking.cli.csproj" />
+  <Project Path="baking.tools/baking.tools.csproj" />
 </Solution>

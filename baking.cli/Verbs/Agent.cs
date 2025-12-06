@@ -93,7 +93,10 @@ namespace baking.cli.Verbs
                             switch (content)
                             {
                                 case TextContent textContent:
+                                    var previousColor = Console.ForegroundColor;
+                                    Console.ForegroundColor = ConsoleColor.Magenta;
                                     Console.Write(textContent.Text);
+                                    Console.ForegroundColor = previousColor;
                                     break;
 
                                 case FunctionCallContent functionCallContent:
@@ -103,9 +106,17 @@ namespace baking.cli.Verbs
                                     break;
 
                                 case FunctionResultContent functionResultContent:
-                                    logger.LogDebug("Function Result - Result: {result}, Exception: {exception}",
-                                        functionResultContent.Result,
-                                        functionResultContent.Exception);
+                                    if (functionResultContent.Exception != null)
+                                    {
+                                        logger.LogError("Function Result - Exception: {exception}, Result: {result}",
+                                            functionResultContent.Exception,
+                                            functionResultContent.Result);
+                                    }
+                                    else if (logger.IsEnabled(LogLevel.Debug))
+                                    {
+                                        logger.LogDebug("Function Result - Result: {result}",
+                                            functionResultContent.Result);
+                                    }
                                     break;
 
                                 case ErrorContent errorContent:
@@ -120,12 +131,16 @@ namespace baking.cli.Verbs
                         var lastUpdate = updates[^1];
                         Console.WriteLine();
                         logger.LogDebug("[Run Ended - Thread: {threadId}, Run: {runId}]", threadId, lastUpdate.ResponseId);
+                        await Task.Delay(500); // Small delay to ensure logs are flushed
                     }
-                    
+                    else
+                    {
+                        Console.WriteLine();
+                    }
+
                     // Add assistant response to messages list
                     var chatResponse = updates.ToChatResponse();
                     messages.AddMessages(chatResponse);
-                    Console.WriteLine();
                 }
             }
             catch (OperationCanceledException)

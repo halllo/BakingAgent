@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 var host = CreateHostBuilder().Build();
@@ -23,6 +24,10 @@ using (var serviceScope = host.Services.CreateScope())
 static IHostBuilder CreateHostBuilder()
 {
 	return Host.CreateDefaultBuilder()
+		.UseSerilog((ctx, cfg) =>
+		{
+			cfg.ReadFrom.Configuration(ctx.Configuration);
+		})
 		.ConfigureServices((ctx, services) =>
 		{
 			var config = ctx.Configuration;
