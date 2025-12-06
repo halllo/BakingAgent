@@ -13,6 +13,9 @@ namespace baking.cli.Verbs
     [Verb("agent", HelpText = "Invoke the agent.")]
     class Agent
     {
+        [Value(0, MetaName = "Mission", HelpText = "The mission or task for the agent to perform.", Required = false)]
+        public string? Mission { get; set; } = null!;
+
         public async Task Do(ILogger<Agent> logger)
         {
             var cancellationToken = CancellationToken.None;
@@ -35,33 +38,39 @@ namespace baking.cli.Verbs
                 description: "Change the console background color to dark blue."
             );
 
-            var chatClient = new AGUIChatClient(
-                httpClient,
-                serverUrl);
-
+            IChatClient chatClient = new AGUIChatClient(httpClient, serverUrl);
             AIAgent agent = chatClient.CreateAIAgent(
                 name: "agui-client",
                 description: "AG-UI Client Agent",
                 tools: [changeBackground]);
 
             AgentThread thread = agent.GetNewThread();
-            List<ChatMessage> messages = [new(ChatRole.System, "You are a helpful assistant.")];
+            List<ChatMessage> messages = [];
             try
             {
                 while (true)
                 {
-                    // Get user message
-                    Console.Write("\nUser: ");
-                    string? message = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(message))
+                    string? message;
+                    if (!string.IsNullOrWhiteSpace(Mission))
                     {
-                        Console.WriteLine("Request cannot be empty.");
-                        continue;
+                        // We use the mission for the first run.
+                        message = Mission;
+                        Mission = null;
                     }
-
-                    if (message is ":q" or "quit")
+                    else
                     {
-                        break;
+                        // Get user message interactively.
+                        Console.Write("\nUser: ");
+                        message = Console.ReadLine();
+                        if (string.IsNullOrWhiteSpace(message))
+                        {
+                            Console.WriteLine("Request cannot be empty.");
+                            continue;
+                        }
+                        else if (message is ":q" or "quit")
+                        {
+                            break;
+                        }
                     }
 
                     messages.Add(new(ChatRole.User, message));
@@ -83,11 +92,12 @@ namespace baking.cli.Verbs
                         // Display run started information from the first update
                         if (isFirstUpdate && threadId != null && update.ResponseId != null)
                         {
-                            logger.LogDebug("Run Started - Thread: {threadId}, Run: {runId}", threadId, update.ResponseId);
+                            logger.LogDebug("Run {runId} started - Thread: {threadId}", update.ResponseId, threadId);
                             isFirstUpdate = false;
                         }
 
                         // Display different content types with appropriate formatting
+                        string lastWrittenText = string.Empty;
                         foreach (AIContent content in update.Contents)
                         {
                             switch (content)
@@ -95,12 +105,13 @@ namespace baking.cli.Verbs
                                 case TextContent textContent:
                                     var previousColor = Console.ForegroundColor;
                                     Console.ForegroundColor = ConsoleColor.Magenta;
-                                    Console.Write(textContent.Text);
+                                    Console.Write(lastWrittenText = textContent.Text);
                                     Console.ForegroundColor = previousColor;
                                     break;
 
                                 case FunctionCallContent functionCallContent:
-                                    logger.LogDebug("Function Call - Name: {functionName}, Arguments: {arguments}",
+                                    if (!lastWrittenText.EndsWith("\n")) Console.WriteLine();
+                                    logger.LogDebug("Function Call {functionName}({arguments})",
                                         functionCallContent.Name,
                                         JsonSerializer.Serialize(functionCallContent.Arguments));
                                     break;
@@ -108,13 +119,13 @@ namespace baking.cli.Verbs
                                 case FunctionResultContent functionResultContent:
                                     if (functionResultContent.Exception != null)
                                     {
-                                        logger.LogError("Function Result - Exception: {exception}, Result: {result}",
+                                        logger.LogError("Function Exception {exception}, Result: {result}",
                                             functionResultContent.Exception,
                                             functionResultContent.Result);
                                     }
                                     else if (logger.IsEnabled(LogLevel.Debug))
                                     {
-                                        logger.LogDebug("Function Result - Result: {result}",
+                                        logger.LogDebug("Function Result {result}",
                                             functionResultContent.Result);
                                     }
                                     break;
@@ -130,7 +141,7 @@ namespace baking.cli.Verbs
                     {
                         var lastUpdate = updates[^1];
                         Console.WriteLine();
-                        logger.LogDebug("[Run Ended - Thread: {threadId}, Run: {runId}]", threadId, lastUpdate.ResponseId);
+                        logger.LogDebug("Run {runId} ended - Thread: {threadId}", lastUpdate.ResponseId, threadId);
                         await Task.Delay(500); // Small delay to ensure logs are flushed
                     }
                     else

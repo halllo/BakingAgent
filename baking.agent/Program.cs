@@ -10,28 +10,44 @@ var app = builder.Build();
 
 app.MapGet("/", () => "Hello there! This is the agent.");
 
-app.MapAGUI("/agui", await CreateLMStudioAgent(builder));
+app.MapAGUI("/agui", await CreateAgent((await ConnectMcpTools()).Cast<AITool>()));
 
 app.Run();
 
-static async Task<AIAgent> CreateLMStudioAgent(WebApplicationBuilder builder)
+static async Task<AIAgent> CreateAgent(IEnumerable<AITool> tools)
+{
+    var ollamaClient = new OpenAIClient(
+        credential: new ApiKeyCredential("_"),
+        options: new() { Endpoint = new Uri("http://localhost:11434/v1") })
+        .GetChatClient("qwen3-vl:4b-instruct");
+
+    var lmStudioClient = new OpenAIClient(
+        credential: new ApiKeyCredential("_"),
+        options: new() { Endpoint = new Uri("http://127.0.0.1:1234/v1") })
+        .GetChatClient("qwen/qwen3-vl-4b");
+
+    var agent = ollamaClient.CreateAIAgent(
+        name: "Baker",
+        instructions: """
+        You are Baker, a very skilled and autonomous baking agent.
+        You have access to various tools to help you with planning, shopping, and baking.
+        Use the tools when needed to complete your tasks successfully.
+        """,
+        tools: [.. tools]);
+    
+    return agent;
+}
+
+static async Task<IList<McpClientTool>> ConnectMcpTools()
 {
     var httpClientTransport = new HttpClientTransport(new()
     {
-        Name = "Baking MCP Server",
+        Name = "Baking Tools MCP Server",
         Endpoint = new Uri("http://localhost:5116/mcp"),
         TransportMode = HttpTransportMode.StreamableHttp,
     });
 
     var mcpClient = await McpClient.CreateAsync(httpClientTransport);
     var mcpTools = await mcpClient.ListToolsAsync();
-
-    var agent = new OpenAIClient(new ApiKeyCredential("_"), new() { Endpoint = new Uri("http://127.0.0.1:1234/v1") })
-        .GetChatClient("qwen/qwen3-vl-4b")
-        .AsIChatClient()
-        .CreateAIAgent(
-            name: "AGUIAssistant",
-            tools: [.. mcpTools.Cast<AITool>()]);
-
-    return agent;
+    return mcpTools;
 }

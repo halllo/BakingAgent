@@ -4,27 +4,11 @@ using ModelContextProtocol.Server;
 namespace baking.tools;
 
 [McpServerToolType]
-public class Tools(ILogger<Tools> logger)
+public class DoingTools(ILogger<DoingTools> logger)
 {
 	[McpServerTool]
-	[Description("Check if an ingredient is available.")]
-	public async Task<string> CheckAvailability(string ingredient, int amount, string unit)
-	{
-		logger.LogInformation("Checking availability of {Amount} {Unit} of {Ingredient}", amount, unit, ingredient);
-		return $"{ingredient} is available.";
-	}
-
-	[McpServerTool]
-	[Description("Buy ingredient or utility in case it is not available but needed.")]
-	public async Task<string> Buy(string ingredient)
-	{
-		logger.LogInformation("Buying {Ingredient}", ingredient);
-		return $"Bought {ingredient}. It is now available for use.";
-	}
-
-	[McpServerTool]
-	[Description("Take a specified amount of an ingredient in a given unit.")]
-	public async Task<string> Take(string ingredient, int amount, string unit)
+	[Description("Take a specified amount of an ingredient in a given unit. Always check availability before taking!")]
+	public async Task<string> Take(string ingredient, string amount, string unit)
 	{
 		logger.LogInformation("Taking {Amount} {Unit} of {Ingredient}", amount, unit, ingredient);
 		return $"Took {amount} {unit} of {ingredient}.";
@@ -40,7 +24,7 @@ public class Tools(ILogger<Tools> logger)
 
 	[McpServerTool]
 	[Description("Bake ingredients in the oven at a specified temperature and duration.")]
-	public async Task<string> UseOven(string[] ingredients, int temperatureCelsius, int minutes)
+	public async Task<string> UseOven(string[] ingredients, string temperatureCelsius, string minutes)
 	{
 		logger.LogInformation("Baking ingredients: {Ingredients} at {Temperature}°C for {Minutes} minutes", string.Join(", ", ingredients), temperatureCelsius, minutes);
 		return $"Baked {string.Join(", ", ingredients)} in the oven at {temperatureCelsius}°C for {minutes} minutes.";
@@ -50,7 +34,7 @@ public class Tools(ILogger<Tools> logger)
 
 	[McpServerTool]
 	[Description("Set a timer for a specified number of minutes.")]
-	public async Task<string> SetTimer(int minutes)
+	public async Task<string> SetTimer(string minutes)
 	{
 		logger.LogInformation("Setting timer for {Minutes} minutes", minutes);
 		return $"Timer set for {minutes} minutes.";
