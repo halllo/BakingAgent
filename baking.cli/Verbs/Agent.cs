@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using CommandLine;
 using Microsoft.Agents.AI;
@@ -25,7 +26,7 @@ namespace baking.cli.Verbs
             // Create the AG-UI client agent
             using HttpClient httpClient = new()
             {
-                Timeout = TimeSpan.FromSeconds(60)
+                Timeout = TimeSpan.FromMinutes(5)
             };
 
             var changeBackground = AIFunctionFactory.Create(
@@ -79,6 +80,7 @@ namespace baking.cli.Verbs
                     bool isFirstUpdate = true;
                     string? threadId = null;
                     var updates = new List<ChatResponseUpdate>();
+                    StringBuilder lastWrittenText = new();
                     await foreach (AgentRunResponseUpdate update in agent.RunStreamingAsync(messages, thread, cancellationToken: cancellationToken))
                     {
                         // Use AsChatResponseUpdate to access ChatResponseUpdate properties
@@ -97,7 +99,6 @@ namespace baking.cli.Verbs
                         }
 
                         // Display different content types with appropriate formatting
-                        string lastWrittenText = string.Empty;
                         foreach (AIContent content in update.Contents)
                         {
                             switch (content)
@@ -105,12 +106,15 @@ namespace baking.cli.Verbs
                                 case TextContent textContent:
                                     var previousColor = Console.ForegroundColor;
                                     Console.ForegroundColor = ConsoleColor.Magenta;
-                                    Console.Write(lastWrittenText = textContent.Text);
+                                    Console.Write(textContent.Text);
+                                    lastWrittenText.Append(textContent.Text);
                                     Console.ForegroundColor = previousColor;
                                     break;
 
                                 case FunctionCallContent functionCallContent:
-                                    if (!lastWrittenText.EndsWith("\n")) Console.WriteLine();
+                                    var lastWrittenTextString = lastWrittenText.ToString();
+                                    if (!string.IsNullOrWhiteSpace(lastWrittenTextString) && !lastWrittenTextString.EndsWith("\n")) Console.WriteLine();
+                                    lastWrittenText.Clear();
                                     logger.LogDebug("Function Call {functionName}({arguments})",
                                         functionCallContent.Name,
                                         JsonSerializer.Serialize(functionCallContent.Arguments));

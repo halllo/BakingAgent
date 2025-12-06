@@ -7,7 +7,7 @@ namespace baking.tools;
 public class DoingTools(ILogger<DoingTools> logger)
 {
 	[McpServerTool]
-	[Description("Take a specified amount of an ingredient in a given unit. Always check availability before taking!")]
+	[Description("Take a specified amount of an ingredient in a given unit. Always check availability before you invoke this!")]
 	public async Task<string> Take(string ingredient, string amount, string unit)
 	{
 		logger.LogInformation("Taking {Amount} {Unit} of {Ingredient}", amount, unit, ingredient);
@@ -23,21 +23,14 @@ public class DoingTools(ILogger<DoingTools> logger)
 	}
 
 	[McpServerTool]
-	[Description("Bake ingredients in the oven at a specified temperature and duration.")]
-	public async Task<string> UseOven(string[] ingredients, string temperatureCelsius, string minutes)
-	{
-		logger.LogInformation("Baking ingredients: {Ingredients} at {Temperature}°C for {Minutes} minutes", string.Join(", ", ingredients), temperatureCelsius, minutes);
-		return $"Baked {string.Join(", ", ingredients)} in the oven at {temperatureCelsius}°C for {minutes} minutes.";
-
-		//todo: use flux
-	}
-
-	[McpServerTool]
 	[Description("Set a timer for a specified number of minutes.")]
 	public async Task<string> SetTimer(string minutes)
 	{
-		logger.LogInformation("Setting timer for {Minutes} minutes", minutes);
-		return $"Timer set for {minutes} minutes.";
+		var minutesValue = double.TryParse(minutes, out var minutesParsed) ? minutesParsed : 2;
+		logger.LogInformation("Setting timer for {Minutes} minutes", minutesValue);
+		await Task.Delay(TimeSpan.FromMinutes(minutesValue));
+		logger.LogInformation("Timer finished after {Minutes} minutes", minutesValue);
+		return $"Waited for {minutesValue} minutes.";
 	}
 
 	[McpServerTool]

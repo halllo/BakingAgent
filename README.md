@@ -13,5 +13,5 @@ dotnet run --project apphost
 Start the frontend.
 
 ```bash
-cd baking.cli && dotnet run agent "please bake /Users/manuelnaujoks/Projects/BakingAgent/recipe.jpg"
+cd baking.cli && dotnet run agent "Take a look at this recipe: /Users/manuelnaujoks/Projects/BakingAgent/recipe.jpg Make sure all ingredients are available and bake it."
 ```

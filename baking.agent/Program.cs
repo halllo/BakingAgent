@@ -29,9 +29,10 @@ static async Task<AIAgent> CreateAgent(IEnumerable<AITool> tools)
     var agent = ollamaClient.CreateAIAgent(
         name: "Baker",
         instructions: """
-        You are Baker, a very skilled and autonomous baking agent.
+        You are Baker, a very skilled and effective baking agent.
         You have access to various tools to help you with planning, shopping, and baking.
         Use the tools when needed to complete your tasks successfully.
+        Dont ask the user many questions, try to be as autonomous as possible.
         """,
         tools: [.. tools]);
     
@@ -40,12 +41,17 @@ static async Task<AIAgent> CreateAgent(IEnumerable<AITool> tools)
 
 static async Task<IList<McpClientTool>> ConnectMcpTools()
 {
+    var httpClient = new HttpClient()
+    {
+        Timeout = TimeSpan.FromMinutes(5)
+    };
+
     var httpClientTransport = new HttpClientTransport(new()
     {
         Name = "Baking Tools MCP Server",
         Endpoint = new Uri("http://localhost:5116/mcp"),
         TransportMode = HttpTransportMode.StreamableHttp,
-    });
+    }, httpClient);
 
     var mcpClient = await McpClient.CreateAsync(httpClientTransport);
     var mcpTools = await mcpClient.ListToolsAsync();
